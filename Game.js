@@ -54,7 +54,8 @@ window.addEventListener('mousemove', (e) => {
     player.angle = Math.atan2(mouseY - player.y, mouseX - player.x);
 });
 
-// Touch Controls
+// Touch Controls (Mobile/Smartphone)
+// Left side: Movement joystick | Right side: Aiming
 canvas.addEventListener('touchstart', (e) => {
     const rect = canvas.getBoundingClientRect();
     const touch = e.touches[0];
@@ -73,8 +74,10 @@ canvas.addEventListener('touchmove', (e) => {
     touchX = touch.clientX - rect.left;
     touchY = touch.clientY - rect.top;
     
-    // If touching left side (joystick area), use for movement
-    // If touching right side, use for aiming
+    // Right side (>2/3 width): Update player angle for aiming
+    if (touchStartX >= gameWidth / 3) {
+        player.angle = Math.atan2(touchY - player.y, touchX - player.x);
+    }
     e.preventDefault();
 });
 
@@ -440,9 +443,9 @@ function drawVirtualJoystick() {
 }
 
 function drawAimAssist() {
-    // Draw aiming indicator for touch controls
+    // Draw aiming indicator for touch controls (right side of screen)
     if (!('ontouchstart' in window)) return;
-    if (!isTouching || touchStartX >= gameWidth / 3) return;
+    if (!isTouching || touchStartX < gameWidth / 3) return;
 
     ctx.save();
     ctx.strokeStyle = 'rgba(255, 200, 0, 0.5)';
