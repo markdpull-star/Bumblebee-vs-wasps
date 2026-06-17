@@ -1,5 +1,167 @@
 const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+// Game variables
+let gameState = 'playing'; // 'playing', 'won', 'lost'
+let killCount = 0;
+let playerHealth = 3;
+let gameWidth = canvas.width = 1000;
+let gameHeight = canvas.height = 600;
+
+// Player (Wasp)
+const player = {
+    x: gameWidth / 2,
+    y: gameHeight / 2,
+    vx: 0,
+    vy: 0,
+    speed: 4,
+    size: 12,
+    angle: 0,
+    stingCooldown: 0,
+    stingRange: 30,
+    health: 3
+};
+
+// Enemies (Bumblebees)
+let enemies = [];
+let enemySpawnTimer = 0;
+const maxEnemies = 8;
+
+// Touch/Mobile variables
+let touchStartX = 0;
+let touchStartY = 0;
+let touchX = 0;
+let touchY = 0;
+let isTouching = false;
+let joystickRadius = 80;
+let joystickX = 100;
+let joystickY = gameHeight - 100;
+
+// Input handling (Keyboard)
+const keys = {};
+window.addEventListener('keydown', (e) => {
+    keys[e.key.toLowerCase()] = true;
+});
+window.addEventListener('keyup', (e) => {
+    keys[e.key.toLowerCase()] = false;
+});
+
+// Mouse tracking for angle (Desktop)
+window.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    player.angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+});
+
+// Touch Controls
+canvas.addEventListener('touchstart', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    touchStartX = touch.clientX - rect.left;
+    touchStartY = touch.clientY - rect.top;
+    touchX = touchStartX;
+    touchY = touchStartY;
+    isTouching = true;
+    e.preventDefault();
+});
+
+canvas.addEventListener('touchmove', (e) => {
+    if (!isTouching) return;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    touchX = touch.clientX - rect.left;
+    touchY = touch.clientY - rect.top;
+    
+    // Update player angle based on touch position (aiming)
+    player.angle = Math.atan2(touchY - player.y, touchX - player.x);
+    e.preventDefault();
+});
+
+canvas.addEventListener('touchend', (e) => {
+    isTouching = false;
+    e.preventDefault();
+});
+
+// ... rest of the code remains the same until drawVirtualJoystick function ...
+
+function drawVirtualJoystick() {
+    // Only draw on mobile/touch devices
+    if (!('ontouchstart' in window)) return;
+
+    ctx.save();
+
+    // Outer circle (joystick background)
+    ctx.fillStyle = 'rgba(100, 100, 100, 0.3)';
+    ctx.beginPath();
+    ctx.arc(joystickX, joystickY, joystickRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Border
+    ctx.strokeStyle = 'rgba(100, 100, 100, 0.6)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(joystickX, joystickY, joystickRadius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Inner circle (joystick control)
+    if (isTouching && touchStartX < gameWidth / 3) {
+        const dx = touchX - joystickX;
+        const dy = touchY - joystickY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const moveDistance = Math.min(distance, joystickRadius);
+
+        if (distance > 0) {
+            const controlX = joystickX + (dx / distance) * moveDistance;
+            const controlY = joystickY + (dy / distance) * moveDistance;
+
+            ctx.fillStyle = 'rgba(100, 150, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(controlX, controlY, joystickRadius * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.fillStyle = 'rgba(100, 150, 255, 0.6)';
+            ctx.beginPath();
+            ctx.arc(joystickX, joystickY, joystickRadius * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else {
+        ctx.fillStyle = 'rgba(100, 150, 255, 0.6)';
+        ctx.beginPath();
+        ctx.arc(joystickX, joystickY, joystickRadius * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+function gameLoop() {
+    // Clear canvas
+    ctx.fillStyle = 'rgba(135, 206, 235, 0.1)';
+    ctx.fillRect(0, 0, gameWidth, gameHeight);
+
+    if (gameState === 'playing') {
+        updatePlayer();
+        updateEnemies();
+        checkStinging();
+        updateUI();
+    }
+
+    // Draw game
+    drawEnemies();
+    drawPlayer();
+    drawVirtualJoystick();
+
+    // Draw health indicator
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText(`Health: ${playerHealth}/3`, 10, 25);
+
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
 
 // Game variables
 let gameState = 'playing'; // 'playing', 'won', 'lost'
