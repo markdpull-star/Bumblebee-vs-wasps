@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wasps vs Bumblebees</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 1000px;
+            height: 600px;
+            background: linear-gradient(180deg, #87ceeb 0%, #e0f6ff 100%);
+            border: 4px solid #333;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #333;
+            font-size: 18px;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 20px;
+            border-radius: 8px;
+            z-index: 100;
+            line-height: 1.6;
+        }
+
+        #ui div {
+            margin: 5px 0;
+        }
+
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 40px 60px;
+            border-radius: 12px;
+            text-align: center;
+            z-index: 200;
+            display: none;
+            font-size: 32px;
+            border: 4px solid gold;
+        }
+
+        #gameOver h1 {
+            margin-bottom: 20px;
+            font-size: 48px;
+        }
+
+        #gameOver button {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #gameOver button:hover {
+            background: #764ba2;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: #333;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 15px;
+            border-radius: 6px;
+            text-align: right;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui">
+            <div>Wasps Killed: <span id="killCount">0</span>/10</div>
+            <div>Health: <span id="health">3</span>/3</div>
+            <div>Enemies: <span id="enemyCount">0</span></div>
+        </div>
+        <div id="instructions">
+            <div>WASD - Move</div>
+            <div>Mouse - Look</div>
+        </div>
+        <div id="gameOver">
+            <h1 id="gameOverText">You Won!</h1>
+            <p>Enemies Defeated: <span id="finalScore">0</span>/10</p>
+            <button onclick="location.reload()">Play Again</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
