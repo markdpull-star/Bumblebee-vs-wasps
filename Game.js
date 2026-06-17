@@ -27,7 +27,17 @@ let enemies = [];
 let enemySpawnTimer = 0;
 const maxEnemies = 8;
 
-// Input handling
+// Touch/Mobile variables
+let touchStartX = 0;
+let touchStartY = 0;
+let touchX = 0;
+let touchY = 0;
+let isTouching = false;
+let joystickRadius = 80;
+let joystickX = 100;
+let joystickY = gameHeight - 100;
+
+// Input handling (Keyboard)
 const keys = {};
 window.addEventListener('keydown', (e) => {
     keys[e.key.toLowerCase()] = true;
@@ -36,12 +46,41 @@ window.addEventListener('keyup', (e) => {
     keys[e.key.toLowerCase()] = false;
 });
 
-// Mouse tracking for angle
+// Mouse tracking for angle (Desktop)
 window.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
     player.angle = Math.atan2(mouseY - player.y, mouseX - player.x);
+});
+
+// Touch Controls
+canvas.addEventListener('touchstart', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    touchStartX = touch.clientX - rect.left;
+    touchStartY = touch.clientY - rect.top;
+    touchX = touchStartX;
+    touchY = touchStartY;
+    isTouching = true;
+    e.preventDefault();
+});
+
+canvas.addEventListener('touchmove', (e) => {
+    if (!isTouching) return;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    touchX = touch.clientX - rect.left;
+    touchY = touch.clientY - rect.top;
+    
+    // If touching left side (joystick area), use for movement
+    // If touching right side, use for aiming
+    e.preventDefault();
+});
+
+canvas.addEventListener('touchend', (e) => {
+    isTouching = false;
+    e.preventDefault();
 });
 
 // Enemy class
@@ -161,7 +200,7 @@ class Bumblebee {
 }
 
 function updatePlayer() {
-    // Movement
+    // Keyboard movement
     let moveX = 0;
     let moveY = 0;
 
@@ -169,6 +208,19 @@ function updatePlayer() {
     if (keys['s']) moveY += player.speed;
     if (keys['a']) moveX -= player.speed;
     if (keys['d']) moveX += player.speed;
+
+    // Touch joystick movement (left side of screen)
+    if (isTouching && touchStartX < gameWidth / 3) {
+        const dx = touchX - joystickX;
+        const dy = touchY - joystickY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance > joystickRadius * 0.2) {
+            const moveDistance = Math.min(distance, joystickRadius);
+            moveX = (dx / joystickRadius) * player.speed * 1.5;
+            moveY = (dy / joystickRadius) * player.speed * 1.5;
+        }
+    }
 
     player.x += moveX;
     player.y += moveY;
@@ -337,6 +389,75 @@ function updateUI() {
     document.getElementById('enemyCount').textContent = enemies.length;
 }
 
+function drawVirtualJoystick() {
+    // Only draw on mobile/touch devices
+    if (!('ontouchstart' in window)) return;
+
+    ctx.save();
+
+    // Outer circle (joystick background)
+    ctx.fillStyle = 'rgba(100, 100, 100, 0.3)';
+    ctx.beginPath();
+    ctx.arc(joystickX, joystickY, joystickRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Border
+    ctx.strokeStyle = 'rgba(100, 100, 100, 0.6)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(joystickX, joystickY, joystickRadius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Inner circle (joystick control)
+    if (isTouching && touchStartX < gameWidth / 3) {
+        const dx = touchX - joystickX;
+        const dy = touchY - joystickY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const moveDistance = Math.min(distance, joystickRadius);
+
+        if (distance > 0) {
+            const controlX = joystickX + (dx / distance) * moveDistance;
+            const controlY = joystickY + (dy / distance) * moveDistance;
+
+            ctx.fillStyle = 'rgba(100, 150, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(controlX, controlY, joystickRadius * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.fillStyle = 'rgba(100, 150, 255, 0.6)';
+            ctx.beginPath();
+            ctx.arc(joystickX, joystickY, joystickRadius * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else {
+        ctx.fillStyle = 'rgba(100, 150, 255, 0.6)';
+        ctx.beginPath();
+        ctx.arc(joystickX, joystickY, joystickRadius * 0.4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+function drawAimAssist() {
+    // Draw aiming indicator for touch controls
+    if (!('ontouchstart' in window)) return;
+    if (!isTouching || touchStartX >= gameWidth / 3) return;
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 200, 0, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(player.x, player.y);
+    ctx.lineTo(
+        player.x + Math.cos(player.angle) * player.stingRange,
+        player.y + Math.sin(player.angle) * player.stingRange
+    );
+    ctx.stroke();
+    ctx.restore();
+}
+
 function gameLoop() {
     // Clear canvas
     ctx.fillStyle = 'rgba(135, 206, 235, 0.1)';
@@ -352,6 +473,8 @@ function gameLoop() {
     // Draw game
     drawEnemies();
     drawPlayer();
+    drawVirtualJoystick();
+    drawAimAssist();
 
     // Draw health indicator
     ctx.fillStyle = '#333';
